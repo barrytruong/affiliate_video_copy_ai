@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h1>Biến video TikTok thành kịch bản</h1>
+  <p class="subtitle">Dán link TikTok hoặc tải video lên. Kịch bản tạo ra sẽ tự nhiên, chân thực — không bị "lộ" là AI viết.</p>
+
+  <div id="health-banner" class="banner banner-loading">Đang kiểm tra hệ thống...</div>
+
+  <div class="tabs">
+    <button type="button" class="tab-btn active" data-tab="url">Dán link TikTok</button>
+    <button type="button" class="tab-btn" data-tab="upload">Tải video lên</button>
+  </div>
+
+  <form id="job-form">
+    <div id="tab-url" class="tab-panel active">
+      <label for="url-input">Link video TikTok</label>
+      <input type="url" id="url-input" name="url" placeholder="https://www.tiktok.com/@user/video/...">
+    </div>
+
+    <div id="tab-upload" class="tab-panel">
+      <label for="file-input">Chọn file video (mp4, mov, webm, mkv)</label>
+      <input type="file" id="file-input" name="file" accept=".mp4,.mov,.webm,.mkv,.m4a,.mp3">
+    </div>
+
+    <label>Ngôn ngữ kịch bản</label>
+    <div class="lang-toggle">
+      <label class="lang-option">
+        <input type="radio" name="language" value="en" checked>
+        <span>🇬🇧 Tiếng Anh</span>
+      </label>
+      <label class="lang-option">
+        <input type="radio" name="language" value="vi">
+        <span>🇻🇳 Tiếng Việt</span>
+      </label>
+    </div>
+
+    <button type="submit" class="primary-btn" id="submit-btn">Tạo kịch bản</button>
+    <p id="form-error" class="error-text"></p>
+  </form>
+</div>
+
+<script src="/static/js/poll.js"></script>
+<script>
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+    });
+  });
+
+  fetchHealth();
+
+  document.getElementById("job-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errorEl = document.getElementById("form-error");
+    errorEl.textContent = "";
+
+    const url = document.getElementById("url-input").value.trim();
+    const fileInput = document.getElementById("file-input");
+    const file = fileInput.files[0];
+
+    if (!url && !file) {
+      errorEl.textContent = "Vui lòng dán link TikTok hoặc chọn một file video.";
+      return;
+    }
+    if (url && file) {
+      errorEl.textContent = "Chỉ chọn một cách: dán link HOẶC tải file lên, không phải cả hai.";
+      return;
+    }
+
+    const language = document.querySelector('input[name="language"]:checked').value;
+
+    const formData = new FormData();
+    if (url) formData.append("url", url);
+    if (file) formData.append("file", file);
+    formData.append("language", language);
+
+    const submitBtn = document.getElementById("submit-btn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Đang gửi...";
+
+    try {
+      const resp = await fetch("/api/jobs", { method: "POST", body: formData });
+      const data = await resp.json();
+      if (!resp.ok) {
+        throw new Error(data.detail || "Có lỗi xảy ra.");
+      }
+      window.location.href = "/jobs/" + data.job_id;
+    } catch (err) {
+      errorEl.textContent = err.message;
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Tạo kịch bản";
+    }
+  });
+</script>
+{% endblock %}

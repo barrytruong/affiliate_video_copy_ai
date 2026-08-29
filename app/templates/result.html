@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <a href="/" class="back-link">&larr; Tạo kịch bản khác</a>
+  <h1>Kết quả</h1>
+
+  <div id="status-box" class="status-box">
+    <div class="spinner"></div>
+    <p id="stage-message">Đang chờ xử lý...</p>
+  </div>
+
+  <div id="result-box" class="hidden">
+    <textarea id="script-text" readonly></textarea>
+    <div class="actions">
+      <button type="button" id="copy-btn" class="secondary-btn">Sao chép</button>
+      <a id="download-link" class="secondary-btn" href="#">Tải xuống .txt</a>
+    </div>
+  </div>
+
+  <div id="error-box" class="hidden banner banner-error"></div>
+</div>
+
+<script>
+  const jobId = "{{ job_id }}";
+  const statusBox = document.getElementById("status-box");
+  const resultBox = document.getElementById("result-box");
+  const errorBox = document.getElementById("error-box");
+  const stageMessage = document.getElementById("stage-message");
+
+  async function poll() {
+    try {
+      const resp = await fetch(`/api/jobs/${jobId}`);
+      if (!resp.ok) {
+        throw new Error("Không tìm thấy công việc này.");
+      }
+      const data = await resp.json();
+      stageMessage.textContent = data.stage_message;
+
+      if (data.status === "done") {
+        statusBox.classList.add("hidden");
+        resultBox.classList.remove("hidden");
+        document.getElementById("script-text").value = data.script;
+        document.getElementById("download-link").href = `/api/jobs/${jobId}/script`;
+        return;
+      }
+      if (data.status === "error") {
+        statusBox.classList.add("hidden");
+        errorBox.classList.remove("hidden");
+        errorBox.textContent = data.error || "Đã có lỗi xảy ra.";
+        return;
+      }
+      setTimeout(poll, 2000);
+    } catch (err) {
+      statusBox.classList.add("hidden");
+      errorBox.classList.remove("hidden");
+      errorBox.textContent = err.message;
+    }
+  }
+
+  document.getElementById("copy-btn").addEventListener("click", () => {
+    const textarea = document.getElementById("script-text");
+    textarea.select();
+    navigator.clipboard.writeText(textarea.value);
+    const btn = document.getElementById("copy-btn");
+    const original = btn.textContent;
+    btn.textContent = "Đã sao chép!";
+    setTimeout(() => (btn.textContent = original), 1500);
+  });
+
+  poll();
+</script>
+{% endblock %}

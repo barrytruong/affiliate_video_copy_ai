@@ -216,3 +216,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Project-specific
+.env
+storage/uploads/*
+storage/downloads/*
+!storage/uploads/.gitkeep
+!storage/downloads/.gitkeep
+
